@@ -51,22 +51,53 @@ namespace ProjCRUD
                       "5 - Exit");
         }
 
-
-        static bool InsertClient(int codClient, string nameClient)
+        static bool ExistsClient(string codClient)
         {
             MySqlTransaction transDB;
             transDB = con.BeginTransaction();
 
-            //CRIA O COMANDO SQL
-            MySqlCommand sqlInsert = con.CreateCommand();
-            sqlInsert.Connection = con;
-            sqlInsert.Transaction = transDB;
+            //CREATES SQL COMMAND USING MYSQL
+            MySqlCommand sqlcmd = con.CreateCommand();
+            sqlcmd.Connection = con;
+            sqlcmd.Transaction = transDB;
 
             try
             {
-                sqlInsert.CommandType = CommandType.Text;
-                sqlInsert.CommandText = "INSERT CLIENTE VALUES ('"+ codClient + "', '" + nameClient + "')";
-                sqlInsert.ExecuteNonQuery();
+                sqlcmd.CommandType = CommandType.Text;
+                sqlcmd.CommandText = "SELECT COUNT(1) FROM CLIENTE WHERE COD_CLIENTE = \"" + codClient + "\"";
+                sqlcmd.ExecuteNonQuery();
+                transDB.Commit();
+                return true;
+            }
+            catch (MySqlException ex)
+            {
+                WriteLine("Error access database - " + ex.Message);
+                ReadLine();
+                transDB.Rollback();
+                return false;
+            }
+            finally
+            {
+                CloseConnectionDB();
+            }
+        }
+
+
+        static bool InsertClient(string codClient, string nameClient)
+        {
+            MySqlTransaction transDB;
+            transDB = con.BeginTransaction();
+
+            //CREATES SQL COMMAND USING MYSQL
+            MySqlCommand sqlcmd = con.CreateCommand();
+            sqlcmd.Connection = con;
+            sqlcmd.Transaction = transDB;
+
+            try
+            {
+                sqlcmd.CommandType = CommandType.Text;
+                sqlcmd.CommandText = "INSERT CLIENTE VALUES ('"+ codClient + "', '" + nameClient + "')";
+                sqlcmd.ExecuteNonQuery();
                 transDB.Commit();
                 return true;
             }
@@ -80,14 +111,44 @@ namespace ProjCRUD
             finally
             {
                 CloseConnectionDB();
-            }
+            }            
+        }
 
-            
+        static bool DeleteClient(string codClient)
+        {
+            MySqlTransaction transDB;
+            transDB = con.BeginTransaction();
+
+            //CREATES SQL COMMAND USING MYSQL
+            MySqlCommand sqlcmd = con.CreateCommand();
+            sqlcmd.Connection = con;
+            sqlcmd.Transaction = transDB;
+
+            try
+            {
+                sqlcmd.CommandType = CommandType.Text;
+                sqlcmd.CommandText = "DELETE FROM CLIENTE WHERE COD_CLIENTE = \""+ codClient + "\"";
+                sqlcmd.ExecuteNonQuery();
+                transDB.Commit();
+                return true;
+            }
+            catch (MySqlException ex)
+            {
+                WriteLine("Error deleting from database - " + ex.Message);
+                ReadLine();
+                transDB.Rollback();
+                return false;
+            }
+            finally
+            {
+                CloseConnectionDB();
+            }
         }
 
         static void Main(string[] args)
         {           
-            string vliOpcao = "";            
+            string vliOpcao = "";
+            
 
             //Closes the application if there is no database connection
             bool isConnected = ConnectDB();
@@ -98,59 +159,73 @@ namespace ProjCRUD
             }             
 
             
-            do  {
+            do  {                
                 Menu();
-                vliOpcao = ReadLine();                
+                vliOpcao = ReadLine();
+                string clientID, clientName = "";
                 switch (vliOpcao)
                 {
                     case "1":
-                        int clientID = 0;
-                        string clientName = "";
-
-                        WriteLine("REGISTER NEW CLIENT");
+                        clientID = "";
+                        clientName = "";
+                        WriteLine("---REGISTER NEW CLIENT---");
 
                         Write("Enter the ID: ");
-                        if (!Int32.TryParse(ReadLine(), out clientID))
+                        clientID = ReadLine();
+                        if (clientID.Trim() == "")
                         {
-                            WriteLine("Invalid number! Please try again...");
+                            WriteLine("Invalid argument! Please try again...");
                             ReadLine();
                             break;
                         }
                         Write("Client Name: ");
                         clientName = ReadLine();
 
-                        if (!InsertClient(clientID, clientName)) WriteLine("Error registering new cliente. Please try again...");
+                        if (!InsertClient(clientID.PadLeft(5, '0'), clientName)) WriteLine("Error registering new cliente. Please try again...");
                         else WriteLine("Success!");
 
                         ReadLine();
                         break;
-                    case "2":
 
-                        WriteLine("Opção 2");
+                    case "2":                        
+                        WriteLine("---DELETE CLIENT---");
+                        Write("Enter the ID: ");
+                        clientID = ReadLine();
+                        if (clientID.Trim() == "")
+                        {
+                            WriteLine("Invalid argument! Please try again...");
+                            ReadLine();
+                            break;
+                        }
 
+                        if (!DeleteClient(clientID.PadLeft(5, '0'))) WriteLine("Error deleting cliente. Please try again...");
+                        else WriteLine("Success!");
+
+                        ReadLine();
                         break;
+
                     case "3":
 
                         WriteLine("Opção 3");
 
                         break;
+
                     case "4":
 
                         WriteLine("Opção 4");
 
                         break;
+
                     default:
 
                         if (vliOpcao != "5") WriteLine("Invalid Option - Try again!");
 
-                        break;
-                    
+                        break;                    
                 }
                 
             } while (vliOpcao != "5");
 
                         
-
             CloseApplication();
         }
 
